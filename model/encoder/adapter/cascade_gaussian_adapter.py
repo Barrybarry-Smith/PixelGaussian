@@ -77,8 +77,12 @@ class ContextHyper(nn.Module):
             metas=metas
         ).mean(dim=-1).squeeze()
 
-        tao_low = min_scores + torch.sigmoid(torch.quantile(score_instances, self.low_ratio)) * (max_scores - min_scores)
-        tao_high = min_scores + torch.sigmoid(torch.quantile(score_instances, self.high_ratio)) * (max_scores - min_scores)
+        score_instances_min, score_instances_max = (torch.min(score_instances), torch.max(score_instances))
+        score_instances = (score_instances - score_instances_min) / (score_instances_max - score_instances_min)
+        scores = min_scores + score_instances * (max_scores - min_scores)
+
+        tao_low = torch.quantile(scores, self.low_ratio)
+        tao_high = torch.quantile(scores, self.high_ratio)
         
         return tao_low, tao_high
 

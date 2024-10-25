@@ -35,11 +35,24 @@ PixelGaussian achieves the best performance on the two representative datasets. 
 
 ### Installation
 
-1. Please clone this project, create a conda virtual environment and install the requirements in `requirement.txt`
+1. Please clone this project, create a conda virtual environment and install the requirements in `requirement.txt`.
 
 2. Download RealEstate10K, ACID datasets and corresponding assets following the instructions of [pixelSplat](https://github.com/dcharatan/pixelsplat/tree/main)
 
-3. Running the code by
+#### Folder Structure
+```
+├── datasets
+│   ├── re10k
+│   ├── ├── train
+│   ├── ├── ├── 000000.torch
+│   ├── ├── ├── 000001.torch
+│   ├── ├── ├── ...
+│   ├── ├── test
+│   ├── ├── ├── 000000.torch
+│   ├── ├── ├── ...
+```
+
+3. Please run the following command to start your training process, and choose a batch size that best matches your device for optimal performance.
 ```bash
 python -m src.main +experiment=[re10k/acid] data_loader.train.batch_size=[batch_size]
 ```
