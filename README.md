@@ -1,10 +1,12 @@
 # PixelGaussian: Generalizable 3D Gaussian Reconstruction From Arbitrary Views
 
-### [Paper](https://arxiv.org/abs/) | [Prject Page](https://wzzheng.net/PixelGaussian)
+### [Paper](https://arxiv.org/abs/2410.18979) | [Prject Page](https://wzzheng.net/PixelGaussian)
 
-> [Xin Fei](https://scholar.google.com/citations?hl=zh-CN&user=r9rsD_0AAAAJ), [Wenzhao Zheng](https://wzzheng.net/)$\dagger$, [Yueqi Duan](https://duanyueqi.github.io/), [Wei Zhan](https://zhanwei.site/), [Masayoshi Tomizuka](https://me.berkeley.edu/people/masayoshi-tomizuka/), [Kurt Keutzer](https://people.eecs.berkeley.edu/~keutzer/), [Jiwen Lu](http://ivg.au.tsinghua.edu.cn/Jiwen_Lu/)
+> [Xin Fei](https://scholar.google.com/citations?hl=zh-CN&user=r9rsD_0AAAAJ)*, [Wenzhao Zheng](https://wzzheng.net/)$\dagger$, [Yueqi Duan](https://duanyueqi.github.io/), [Wei Zhan](https://zhanwei.site/), [Masayoshi Tomizuka](https://me.berkeley.edu/people/masayoshi-tomizuka/), [Kurt Keutzer](https://people.eecs.berkeley.edu/~keutzer/), [Jiwen Lu](http://ivg.au.tsinghua.edu.cn/Jiwen_Lu/)
 
-$\dagger$ Project leader
+Tsinghua University, UC Berkeley
+
+\*Work doen during an internship at UC Berkeley, $\dagger$ Project leader
 
 Most existing generalizable 3D Gaussian splatting methods (e.g., pixelSplat, MVSplat) assign a fixed number of Gaussians to each pixel, leading to inefficiency in capturing local geometry and overlap across views.  Differently, **our PixelGaussian dynamically adjusts the Gaussian distributions based on geometric complexity in a feed-forward framework.**  With comparable efficiency, PixelGaussian (trained using 2 views) successfully generalizes to various numbers of input views with adaptive Gaussian densities.
 
@@ -12,7 +14,7 @@ Most existing generalizable 3D Gaussian splatting methods (e.g., pixelSplat, MVS
 
 ## News
 - **[2024/10/25]** Code release.
-- **[2024/10/25]** Paper released on [arXiv](https://arxiv.org/abs/).
+- **[2024/10/25]** Paper released on [arXiv](https://arxiv.org/abs/2410.18979).
 
 ## Visualizations
 ![pipeline](./figs/visualizations.png)
@@ -53,7 +55,7 @@ If you find this project helpful, please consider citing the following paper:
 @article{fei2024pixel,
     title={PixelGaussian: Generalizable 3D Gaussian Reconstruction From Arbitrary Views},
     author={Fei, Xin and Zheng, Wenzhao and Duan, Yueqi and Zhan, Wei and Tomizuka, Masayoshi and Keutzer, Kurt and Lu, Jiwen},
-    journal={arXiv preprint arXiv:},
+    journal={arXiv preprint arXiv:2410.18979},
     year={2024}
 }
 ```
