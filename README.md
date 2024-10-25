@@ -1,6 +1,6 @@
 # PixelGaussian: Generalizable 3D Gaussian Reconstruction From Arbitrary Views
 
-### [Paper](https://arxiv.org/abs/2410.18979) | [Prject Page](https://wzzheng.net/PixelGaussian)
+### [Paper](https://arxiv.org/abs/2410.18979) | [Project Page](https://wzzheng.net/PixelGaussian)
 
 > [Xin Fei](https://scholar.google.com/citations?hl=zh-CN&user=r9rsD_0AAAAJ)*, [Wenzhao Zheng](https://wzzheng.net/)$\dagger$, [Yueqi Duan](https://duanyueqi.github.io/), [Wei Zhan](https://zhanwei.site/), [Masayoshi Tomizuka](https://me.berkeley.edu/people/masayoshi-tomizuka/), [Kurt Keutzer](https://people.eecs.berkeley.edu/~keutzer/), [Jiwen Lu](http://ivg.au.tsinghua.edu.cn/Jiwen_Lu/)
 
