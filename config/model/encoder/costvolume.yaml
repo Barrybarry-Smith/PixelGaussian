@@ -17,7 +17,7 @@ gaussian_adapter:
 
 d_feature: 128
 keypoint_scorer_hidden_dim: [256, 128, 64]
-opacity_thres: 0.3
+opacity_thres: 0.1
 split_count: 1
 scaling_factor: 0.5
 opacity_factor: 0.5
