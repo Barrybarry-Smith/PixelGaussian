@@ -17,8 +17,9 @@ class ContextHyper(nn.Module):
                  num_learnable_pts,
                  fix_scale,
                  num_anchors,
-                 low_ratio=0.05,
-                 high_ratio=0.95
+                 low_ratio=0.3,
+                 high_ratio=0.7,
+                 eps=1e-8
                 ):
         
         super(ContextHyper, self).__init__()
@@ -26,6 +27,7 @@ class ContextHyper(nn.Module):
         self.num_anchors = num_anchors
         self.low_ratio = low_ratio
         self.high_ratio = high_ratio
+        self.eps = eps
         self.deformable = DeformableFeatureAggregation(
             embed_dims=score_embed,
             num_groups=num_groups,
@@ -41,6 +43,10 @@ class ContextHyper(nn.Module):
             nn.Linear(1, score_embed),
             nn.ReLU(inplace=True),
             nn.LayerNorm(score_embed)
+        )
+        self.score_decoder = nn.Sequential(
+            nn.Linear(score_embed, 1),
+            nn.ReLU(inplace=True)
         )
     
 
@@ -60,6 +66,7 @@ class ContextHyper(nn.Module):
         anchors = torch.cat([means, scales, rotations, opacities], dim=-1)
 
         scores = gaussian_scores[anchor_idxs].reshape(self.num_anchors, 1)
+
         score_instances = self.score_encoder(scores)
         min_scores, max_scores = (torch.min(gaussian_scores), torch.max(gaussian_scores))
 
@@ -75,15 +82,15 @@ class ContextHyper(nn.Module):
             anchor_embed=None,
             feature_maps=score_embeds,
             metas=metas
-        ).mean(dim=-1).squeeze()
+        )
+        scores = self.score_decoder(score_instances).squeeze()
+  
+        scores = (scores - torch.min(scores)) / (torch.max(scores) - torch.min(scores) + self.eps)
+        scores = min_scores + scores * (max_scores - min_scores)
 
-        score_instances_min, score_instances_max = (torch.min(score_instances), torch.max(score_instances))
-        score_instances = (score_instances - score_instances_min) / (score_instances_max - score_instances_min)
-        scores = min_scores + score_instances * (max_scores - min_scores)
-
-        tao_low = torch.quantile(scores, self.low_ratio)
-        tao_high = torch.quantile(scores, self.high_ratio)
-        
+        tao_low = torch.quantile(gaussian_scores, self.low_ratio)
+        tao_high = torch.quantile(gaussian_scores, self.high_ratio)
+    
         return tao_low, tao_high
 
 
@@ -253,8 +260,8 @@ class CascadeGaussianAdapter(nn.Module):
             intri = intrinsics[view].clone()
             intri[0, 0] *= w
             intri[0, 2] *= w
-            intri[1, 1] *= w
-            intri[1, 2] *= w
+            intri[1, 1] *= h
+            intri[1, 2] *= h
 
             K = torch.eye(4, 4, dtype=w2c.dtype).to(device)
             K[:3, :3] = intri
@@ -361,7 +368,7 @@ class CascadeGaussianAdapter(nn.Module):
                     alphas=alphas,
                     image_size=image_size
                 )
-                
+      
                 tao_low, tao_high = self.hypers[stage](
                     gaussians=cur_gaussians,
                     gaussian_scores=gaussian_scores,
@@ -376,6 +383,6 @@ class CascadeGaussianAdapter(nn.Module):
                 cur_gaussians = self.gaussian_pruner(cur_gaussians, prune_idx)
 
             gaussians[batch] = cur_gaussians  
-            
+        
         return gaussians
   

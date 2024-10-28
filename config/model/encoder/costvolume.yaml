@@ -16,6 +16,10 @@ gaussian_adapter:
   sh_degree: 4
 
 d_feature: 128
+max_num_view: 6
+use_feat: false
+score_channels: [64, 128, 256, 128, 64, 1]
+num_layers: 6
 keypoint_scorer_hidden_dim: [256, 128, 64]
 opacity_thres: 0.1
 split_count: 1
@@ -25,11 +29,11 @@ opacity_factor: 0.5
 cga_stages: 3
 cga_num_groups: 2
 cga_num_levels: 2
-cga_num_anchors: 6400
+cga_num_anchors: 51200
 igr_stages: 3
 igr_num_groups: 4
 igr_num_levels: 4
-igr_num_anchors: 12800
+igr_num_anchors: 51200
 attn_drop: 0.15
 num_learnable_pts: 6
 score_embed: 32

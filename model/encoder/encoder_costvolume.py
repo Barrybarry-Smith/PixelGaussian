@@ -16,7 +16,7 @@ from .backbone import (
     BackboneMultiview,
 )
 from .common.gaussian_adapter import GaussianAdapter, GaussianAdapterCfg
-from .common.keypoint_scorer import KeypointScorer
+from .common.keypoint_scorer import FeatureScorer, ContextScorer
 from .adapter.cascade_gaussian_adapter import CascadeGaussianAdapter
 from .adapter.gaussian_refiner import IterativeGaussianRefiner
 from .encoder import Encoder
@@ -50,9 +50,13 @@ class EncoderCostVolumeCfg:
     cga_num_groups: int
     igr_num_groups: int
     score_embed: int
+    use_feat: bool
+    score_channels: List[int]
+    num_layers: int
     cga_num_levels: int
     igr_num_levels: int
     cga_num_anchors: int
+    max_num_view: int
     igr_num_anchors: int
     attn_drop: float
     num_learnable_pts: int
@@ -104,10 +108,20 @@ class EncoderCostVolume(Encoder[EncoderCostVolumeCfg]):
             no_cross_attn=cfg.wo_backbone_cross_attn,
             use_epipolar_trans=cfg.use_epipolar_trans,
         )
-        self.keypoint_scorer = KeypointScorer(
-            input_dim=cfg.d_feature,
-            hidden_dims=cfg.keypoint_scorer_hidden_dim
-        )
+
+        self.use_feat = cfg.use_feat
+        if self.use_feat:
+            self.keypoint_scorer = FeatureScorer(
+                input_dim=cfg.d_feature,
+                hidden_dims=cfg.keypoint_scorer_hidden_dim,
+                max_num_view=cfg.max_num_view
+            )
+        else:
+            self.keypoint_scorer = ContextScorer(
+                channels=cfg.score_channels,
+                num_layers=cfg.num_layers,
+                max_num_view=cfg.max_num_view
+            )
 
         self.cascade_gaussian_adapter = CascadeGaussianAdapter(
             stages=cfg.cga_stages,
@@ -264,7 +278,25 @@ class EncoderCostVolume(Encoder[EncoderCostVolumeCfg]):
         )
 
         # Cascade Gaussian Adapter
-        score_maps, alphas = self.keypoint_scorer(trans_features, h, w)
+        if self.use_feat:
+            score_maps, alphas = self.keypoint_scorer(trans_features, h, w)
+        else:
+            score_maps, alphas = self.keypoint_scorer(context["image"])
+        
+        # import torchvision
+        # v = score_maps.shape[0]
+        # for view in range(v):
+        #     score_map = score_maps[view]
+        #     score_map = (score_map - torch.min(score_map)) / (torch.max(score_map) - torch.min(score_map))
+        #     torchvision.utils.save_image(score_map, f"{view}_score.png")
+
+        # contexts = context["image"].squeeze()
+        # for view in range(v):
+        #     context = contexts[view]
+        #     torchvision.utils.save_image(context, f"{view}_context.png")
+        
+        # assert 0
+
         adaptive_gaussians = self.cascade_gaussian_adapter(
             origin_gaussians=origin_gaussians,
             score_maps=score_maps,
