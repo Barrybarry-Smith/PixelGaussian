@@ -16,15 +16,15 @@ gaussian_adapter:
   sh_degree: 4
 
 d_feature: 128
-max_num_view: 6
+max_num_view: 12
 use_feat: false
 score_channels: [64, 128, 256, 128, 64, 1]
 num_layers: 6
 keypoint_scorer_hidden_dim: [256, 128, 64]
 opacity_thres: 0.1
 split_count: 1
-scaling_factor: 0.85
-opacity_factor: 0.85
+scaling_factor: 0.50
+opacity_factor: 0.50
 
 cga_stages: 3
 cga_num_groups: 2
