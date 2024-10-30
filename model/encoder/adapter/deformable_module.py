@@ -10,7 +10,7 @@ from torchvision.models import resnet50, resnet18
 from torch.cuda.amp.autocast_mode import autocast
 from src.ops import DeformableAggregationFunction as DAF
 from .utils import get_rotation_matrix, safe_sigmoid
-from .utils import cartesian, inv_cartesian, linear_relu_ln
+from .utils import cartesian, inv_cartesian
 
 
 class SparseGaussian3DKeyPointsGenerator(nn.Module):
@@ -90,7 +90,7 @@ class DeformableFeatureAggregation(nn.Module):
         embed_dims: int = 128,
         num_groups: int = 2,
         num_levels: int = 2,
-        num_cams: int = 2,
+        max_num_view: int = 12,
         proj_drop: float = 0.0,
         attn_drop: float = 0.0,
         kps_generator: dict = None,
@@ -104,7 +104,7 @@ class DeformableFeatureAggregation(nn.Module):
         self.embed_dims = embed_dims
         self.num_levels = num_levels
         self.num_groups = num_groups
-        self.num_cams = num_cams
+        self.max_num_view = max_num_view
         self.use_deformable_func = use_deformable_func and DAF is not None
         self.attn_drop = attn_drop
         self.residual_mode = residual_mode
@@ -113,7 +113,7 @@ class DeformableFeatureAggregation(nn.Module):
         self.kps_generator = SparseGaussian3DKeyPointsGenerator(**kps_generator)
         self.num_pts = self.kps_generator.num_pts
         self.output_proj = nn.Linear(embed_dims, embed_dims)
-        self.weights_fc = nn.Linear(self.embed_dims, self.num_groups * self.num_cams * self.num_levels * self.num_pts)
+        self.weights_fc = nn.Linear(self.embed_dims, self.num_groups * self.max_num_view * self.num_levels * self.num_pts)
 
     def init_weight(self):
         nn.init.constant_(self.weights_fc.weight, 0.0)
@@ -139,7 +139,8 @@ class DeformableFeatureAggregation(nn.Module):
         bs, num_anchor = instance_feature.shape[:2]
         key_points = self.kps_generator(pts3d, anchor, instance_feature)
 
-        weights = self._get_weights(instance_feature, anchor_embed, metas)
+        view = metas["projection_mat"].shape[1]
+        weights = self._get_weights(instance_feature, view, anchor_embed)
 
         weights = (
             weights.permute(0, 1, 4, 2, 3, 5)
@@ -147,7 +148,7 @@ class DeformableFeatureAggregation(nn.Module):
             .reshape(
                 bs,
                 num_anchor * self.num_pts,
-                self.num_cams,
+                view,
                 self.num_levels,
                 self.num_groups,
             )
@@ -160,7 +161,7 @@ class DeformableFeatureAggregation(nn.Module):
                 metas.get("image_wh")
             )
             .permute(0, 2, 3, 1, 4)
-            .reshape(bs, num_anchor * self.num_pts, self.num_cams, 2)
+            .reshape(bs, num_anchor * self.num_pts, view, 2)
         )
 
         features = DAF.apply(
@@ -176,8 +177,10 @@ class DeformableFeatureAggregation(nn.Module):
 
         return output
 
-    def _get_weights(self, instance_feature, anchor_embed=None, metas=None):
+    def _get_weights(self, instance_feature, view, anchor_embed=None):
         bs, num_anchor = instance_feature.shape[:2]
+        assert self.max_num_view % view == 0
+
         if anchor_embed is not None:
             feature = instance_feature + anchor_embed
         else:
@@ -190,15 +193,17 @@ class DeformableFeatureAggregation(nn.Module):
             .reshape(
                 bs,
                 num_anchor,
-                self.num_cams,
+                view,
+                self.max_num_view // view,
                 self.num_levels,
                 self.num_pts,
                 self.num_groups,
             )
-        )
+        ).mean(dim=3)
+
         if self.training and self.attn_drop > 0:
             mask = torch.rand(
-                bs, num_anchor, self.num_cams, 1, self.num_pts, 1
+                bs, num_anchor, view, 1, self.num_pts, 1
             )
             mask = mask.to(device=weights.device, dtype=weights.dtype)
             weights = ((mask > self.attn_drop) * weights) / (

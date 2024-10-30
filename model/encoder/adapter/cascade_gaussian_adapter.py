@@ -1,5 +1,6 @@
 import random, copy
 import torch
+import matplotlib.pyplot as plt
 import torch.nn as nn
 from src.geometry.projection import project
 from src.model.types import Gaussian
@@ -16,9 +17,12 @@ class ContextHyper(nn.Module):
                  attn_drop,
                  num_learnable_pts,
                  fix_scale,
+                 max_num_view,
                  num_anchors,
                  low_ratio=0.3,
                  high_ratio=0.7,
+                 split_tuning=0.1,
+                 prune_tuning=0.02,
                  eps=1e-8
                 ):
         
@@ -28,10 +32,13 @@ class ContextHyper(nn.Module):
         self.low_ratio = low_ratio
         self.high_ratio = high_ratio
         self.eps = eps
+        self.split_tuning = split_tuning
+        self.prune_tuning = prune_tuning
         self.deformable = DeformableFeatureAggregation(
             embed_dims=score_embed,
             num_groups=num_groups,
             num_levels=num_levels,
+            max_num_view=max_num_view,
             attn_drop=attn_drop,
             kps_generator=dict(
                 num_learnable_pts=num_learnable_pts,
@@ -48,7 +55,6 @@ class ContextHyper(nn.Module):
             nn.Linear(score_embed, 1),
             nn.ReLU(inplace=True)
         )
-    
 
     def forward(self,
                 gaussians,
@@ -88,9 +94,9 @@ class ContextHyper(nn.Module):
         scores = (scores - torch.min(scores)) / (torch.max(scores) - torch.min(scores) + self.eps)
         scores = min_scores + scores * (max_scores - min_scores)
 
-        tao_low = torch.quantile(gaussian_scores, self.low_ratio)
-        tao_high = torch.quantile(gaussian_scores, self.high_ratio)
-    
+        tao_low = torch.quantile(gaussian_scores, self.low_ratio) - self.prune_tuning * torch.quantile(scores, self.low_ratio)
+        tao_high = torch.quantile(gaussian_scores, self.high_ratio) + self.split_tuning * torch.quantile(scores, self.high_ratio)
+
         return tao_low, tao_high
 
 
@@ -103,6 +109,7 @@ class CascadeGaussianAdapter(nn.Module):
                  scaling_factor,
                  opacity_factor,
                  num_groups,
+                 max_num_view,
                  num_levels,
                  attn_drop,
                  num_learnable_pts,
@@ -123,6 +130,7 @@ class CascadeGaussianAdapter(nn.Module):
         self.num_learnable_pts = num_learnable_pts
         self.fix_scale = fix_scale
         self.num_anchors = num_anchors
+        self.max_num_view = max_num_view
         self.score_embed = score_embed
 
         self.hypers = []
@@ -135,6 +143,7 @@ class CascadeGaussianAdapter(nn.Module):
                     attn_drop=self.attn_drop,
                     num_learnable_pts=self.num_learnable_pts,
                     fix_scale=self.fix_scale,
+                    max_num_view=self.max_num_view,
                     num_anchors=self.num_anchors
                 ).cuda()
             )
@@ -385,4 +394,3 @@ class CascadeGaussianAdapter(nn.Module):
             gaussians[batch] = cur_gaussians  
         
         return gaussians
-  

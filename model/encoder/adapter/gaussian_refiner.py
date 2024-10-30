@@ -13,6 +13,7 @@ class IterativeGaussianRefiner(nn.Module):
                  num_levels,
                  attn_drop,
                  num_learnable_pts,
+                 max_num_view,
                  fix_scale,
                  num_anchors,
                  embed_dim):
@@ -33,6 +34,7 @@ class IterativeGaussianRefiner(nn.Module):
             embed_dims=embed_dim,
             num_groups=num_groups,
             num_levels=num_levels,
+            max_num_view=max_num_view,
             attn_drop=attn_drop,
             kps_generator=dict(
                 num_learnable_pts=num_learnable_pts,
